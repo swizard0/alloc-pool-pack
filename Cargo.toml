@@ -1,0 +1,11 @@
+[package]
+name = "alloc-pool-pack"
+version = "0.1.0"
+authors = ["Alexey Voznyuk <me@swizard.info>"]
+description = "Primitive objects binary serializer for `alloc_pool::bytes`"
+edition = "2021"
+
+[dependencies]
+alloc-pool = { git = "https://github.com/swizard0/alloc-pool.git" }
+
+either = "^1.8"
