@@ -4,14 +4,14 @@ use either::{
 
 use alloc_pool::{
     bytes::{
-        Bytes,
         BytesMut,
     },
 };
 
 use crate::{
     integer,
-    ReadFromBytes,
+    Source,
+    ReadFromSource,
     WriteToBytesMut,
 };
 
@@ -26,11 +26,11 @@ impl WriteToBytesMut for () {
 pub enum ReadUnitError {
 }
 
-impl ReadFromBytes for () {
+impl ReadFromSource for () {
     type Error = ReadUnitError;
 
-    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
-        Ok(((), bytes))
+    fn read_from_source<S>(_source: &mut S) -> Result<Self, Self::Error> where S: Source {
+        Ok(())
     }
 }
 
@@ -55,29 +55,29 @@ impl<L, R> WriteToBytesMut for Either<L, R> where L: WriteToBytesMut, R: WriteTo
 }
 
 #[derive(Debug)]
-pub enum ReadEitherError<L, R> where L: ReadFromBytes, R: ReadFromBytes {
+pub enum ReadEitherError<L, R> where L: ReadFromSource, R: ReadFromSource {
     Tag(integer::ReadIntegerError),
     InvalidTag(u8),
     Left(L::Error),
     Right(R::Error),
 }
 
-impl<L, R> ReadFromBytes for Either<L, R> where L: ReadFromBytes, R: ReadFromBytes {
+impl<L, R> ReadFromSource for Either<L, R> where L: ReadFromSource, R: ReadFromSource {
     type Error = ReadEitherError<L, R>;
 
-    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
-        let (tag, bytes) = u8::read_from_bytes(bytes)
+    fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
+        let tag = u8::read_from_source(source)
             .map_err(Self::Error::Tag)?;
         match tag {
             TAG_LEFT => {
-                let (left, bytes) = L::read_from_bytes(bytes)
+                let left = L::read_from_source(source)
                     .map_err(Self::Error::Left)?;
-                Ok((Either::Left(left), bytes))
+                Ok(Either::Left(left))
             },
             TAG_RIGHT => {
-                let (right, bytes) = R::read_from_bytes(bytes)
+                let right = R::read_from_source(source)
                     .map_err(Self::Error::Right)?;
-                Ok((Either::Right(right), bytes))
+                Ok(Either::Right(right))
             },
             _ =>
                 Err(Self::Error::InvalidTag(tag)),
@@ -99,18 +99,18 @@ impl<T> WriteToBytesMut for Option<T> where T: WriteToBytesMut {
     }
 }
 
-impl<T> ReadFromBytes for Option<T> where T: ReadFromBytes {
+impl<T> ReadFromSource for Option<T> where T: ReadFromSource {
     type Error = ReadEitherError<(), T>;
 
-    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
-        let (either, bytes) = Either::read_from_bytes(bytes)?;
+    fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
+        let either = Either::read_from_source(source)?;
         let option = match either {
             Either::Left(()) =>
                 None,
             Either::Right(value) =>
                 Some(value),
         };
-        Ok((option, bytes))
+        Ok(option)
     }
 }
 
@@ -128,18 +128,18 @@ impl<T, E> WriteToBytesMut for Result<T, E> where T: WriteToBytesMut, E: WriteTo
     }
 }
 
-impl<T, E> ReadFromBytes for Result<T, E> where T: ReadFromBytes, E: ReadFromBytes {
+impl<T, E> ReadFromSource for Result<T, E> where T: ReadFromSource, E: ReadFromSource {
     type Error = ReadEitherError<E, T>;
 
-    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
-        let (either, bytes) = Either::read_from_bytes(bytes)?;
+    fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
+        let either = Either::read_from_source(source)?;
         let result = match either {
             Either::Left(error) =>
                 Err(error),
             Either::Right(value) =>
                 Ok(value),
         };
-        Ok((result, bytes))
+        Ok(result)
     }
 }
 
@@ -153,20 +153,20 @@ impl<A, B> WriteToBytesMut for (A, B) where A: WriteToBytesMut, B: WriteToBytesM
 }
 
 #[derive(Debug)]
-pub enum ReadTuple2Error<A, B> where A: ReadFromBytes, B: ReadFromBytes {
+pub enum ReadTuple2Error<A, B> where A: ReadFromSource, B: ReadFromSource {
     A(A::Error),
     B(B::Error),
 }
 
-impl<A, B> ReadFromBytes for (A, B) where A: ReadFromBytes, B: ReadFromBytes {
+impl<A, B> ReadFromSource for (A, B) where A: ReadFromSource, B: ReadFromSource {
     type Error = ReadTuple2Error<A, B>;
 
-    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
-        let (a, bytes) = A::read_from_bytes(bytes)
+    fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
+        let a = A::read_from_source(source)
             .map_err(ReadTuple2Error::A)?;
-        let (b, bytes) = B::read_from_bytes(bytes)
+        let b = B::read_from_source(source)
             .map_err(ReadTuple2Error::B)?;
-        Ok(((a, b), bytes))
+        Ok((a, b))
     }
 }
 
@@ -181,22 +181,22 @@ impl<A, B, C> WriteToBytesMut for (A, B, C) where A: WriteToBytesMut, B: WriteTo
 }
 
 #[derive(Debug)]
-pub enum ReadTuple3Error<A, B, C> where A: ReadFromBytes, B: ReadFromBytes, C: ReadFromBytes {
+pub enum ReadTuple3Error<A, B, C> where A: ReadFromSource, B: ReadFromSource, C: ReadFromSource {
     A(A::Error),
     B(B::Error),
     C(C::Error),
 }
 
-impl<A, B, C> ReadFromBytes for (A, B, C) where A: ReadFromBytes, B: ReadFromBytes, C: ReadFromBytes {
+impl<A, B, C> ReadFromSource for (A, B, C) where A: ReadFromSource, B: ReadFromSource, C: ReadFromSource {
     type Error = ReadTuple3Error<A, B, C>;
 
-    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
-        let (a, bytes) = A::read_from_bytes(bytes)
+    fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
+        let a = A::read_from_source(source)
             .map_err(ReadTuple3Error::A)?;
-        let (b, bytes) = B::read_from_bytes(bytes)
+        let b = B::read_from_source(source)
             .map_err(ReadTuple3Error::B)?;
-        let (c, bytes) = C::read_from_bytes(bytes)
+        let c = C::read_from_source(source)
             .map_err(ReadTuple3Error::C)?;
-        Ok(((a, b, c), bytes))
+        Ok((a, b, c))
     }
 }

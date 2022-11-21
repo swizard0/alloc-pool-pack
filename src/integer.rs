@@ -4,13 +4,13 @@ use std::{
 
 use alloc_pool::{
     bytes::{
-        Bytes,
         BytesMut,
     },
 };
 
 use crate::{
-    ReadFromBytes,
+    Source,
+    ReadFromSource,
     WriteToBytesMut,
 };
 
@@ -30,20 +30,21 @@ macro_rules! traits_impl {
             }
         }
 
-        impl ReadFromBytes for $T {
+        impl ReadFromSource for $T {
             type Error = ReadIntegerError;
 
-            fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
+            fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
                 let required = mem::size_of::<Self>();
-                let value = bytes.get(.. required)
+                let slice = source.slice();
+                let value = slice.get(.. required)
                     .and_then(|octets_slice| octets_slice.try_into().ok())
                     .map(|octets| Self::from_be_bytes(octets))
                     .ok_or(ReadIntegerError::InvalidBytesCount {
-                        provided: bytes.len(),
+                        provided: slice.len(),
                         required,
                     })?;
-                let next_bytes = bytes.subrange(required ..);
-                Ok((value, next_bytes))
+                source.advance(required);
+                Ok(value)
             }
         }
     }

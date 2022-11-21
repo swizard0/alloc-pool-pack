@@ -17,10 +17,64 @@ pub trait WriteToBytesMut {
     fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut);
 }
 
-pub trait ReadFromBytes: Sized {
+pub trait Source {
+    fn slice(&self) -> &[u8];
+    fn bytes(&self) -> Option<&Bytes>;
+    fn advance(&mut self, bytes_count: usize);
+}
+
+pub struct SourceSlice<'a> {
+    slice: &'a [u8],
+}
+
+impl<'a> From<&'a [u8]> for SourceSlice<'a> {
+    fn from(slice: &'a [u8]) -> SourceSlice<'a> {
+        SourceSlice { slice, }
+    }
+}
+
+impl<'a> Source for SourceSlice<'a> {
+    fn slice(&self) -> &[u8] {
+        self.slice
+    }
+
+    fn bytes(&self) -> Option<&Bytes> {
+        None
+    }
+
+    fn advance(&mut self, bytes_count: usize) {
+        self.slice = &self.slice[bytes_count ..];
+    }
+}
+
+pub struct SourceBytes {
+    bytes: Bytes,
+}
+
+impl From<Bytes> for SourceBytes {
+    fn from(bytes: Bytes) -> SourceBytes {
+        SourceBytes { bytes, }
+    }
+}
+
+impl Source for SourceBytes {
+    fn slice(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    fn bytes(&self) -> Option<&Bytes> {
+        Some(&self.bytes)
+    }
+
+    fn advance(&mut self, bytes_count: usize) {
+        self.bytes.focus_subrange(bytes_count ..);
+    }
+}
+
+pub trait ReadFromSource: Sized {
     type Error;
 
-    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error>;
+    fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source;
 }
 
 pub fn write<T>(blocks_pool: &BytesPool, value: &T) -> Bytes where T: WriteToBytesMut {

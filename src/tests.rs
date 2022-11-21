@@ -6,7 +6,9 @@ use alloc_pool::{
 };
 
 use crate::{
-    ReadFromBytes,
+    Source,
+    SourceBytes,
+    ReadFromSource,
     WriteToBytesMut,
 };
 
@@ -20,12 +22,12 @@ fn serialize_deserialize_two_integers() {
     a.write_to_bytes_mut(&mut bytes_mut);
     b.write_to_bytes_mut(&mut bytes_mut);
 
-    let bytes = bytes_mut.freeze();
-    let (aa, bytes) = u32::read_from_bytes(bytes).unwrap();
-    let (bb, bytes) = u64::read_from_bytes(bytes).unwrap();
+    let mut source_bytes = SourceBytes::from(bytes_mut.freeze());
+    let aa = u32::read_from_source(&mut source_bytes).unwrap();
+    let bb = u64::read_from_source(&mut source_bytes).unwrap();
     assert_eq!(a, aa);
     assert_eq!(b, bb);
-    assert_eq!(bytes.len(), 0);
+    assert_eq!(source_bytes.slice().len(), 0);
 }
 
 #[test]
@@ -38,7 +40,9 @@ fn serialize_deserialize_complex() {
     type ComplexType = (Option<u16>, Result<Bytes, u8>);
     let complex: ComplexType = (Some(13), Ok(data));
     let bytes = crate::write(&bytes_pool, &complex);
-    let (deserialized, bytes) = ComplexType::read_from_bytes(bytes).unwrap();
+    let mut source_bytes = SourceBytes::from(bytes);
+    let deserialized =
+        ComplexType::read_from_source(&mut source_bytes).unwrap();
     assert_eq!(deserialized, complex);
-    assert_eq!(bytes.len(), 0);
+    assert_eq!(source_bytes.slice().len(), 0);
 }
