@@ -6,9 +6,9 @@ use alloc_pool::{
     },
 };
 
-mod bytes;
-mod integer;
-mod combinators;
+pub mod bytes;
+pub mod integer;
+pub mod combinators;
 
 #[cfg(test)]
 mod tests;
