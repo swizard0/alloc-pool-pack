@@ -1,5 +1,6 @@
 use alloc_pool::{
     bytes::{
+        Bytes,
         BytesPool,
     },
 };
@@ -24,5 +25,20 @@ fn serialize_deserialize_two_integers() {
     let (bb, bytes) = u64::read_from_bytes(bytes).unwrap();
     assert_eq!(a, aa);
     assert_eq!(b, bb);
+    assert_eq!(bytes.len(), 0);
+}
+
+#[test]
+fn serialize_deserialize_complex() {
+    let bytes_pool = BytesPool::new();
+    let mut data_mut = bytes_pool.lend();
+    data_mut.extend_from_slice("test string".as_bytes());
+    let data = data_mut.freeze();
+
+    type ComplexType = (Option<u16>, Result<Bytes, u8>);
+    let complex: ComplexType = (Some(13), Ok(data));
+    let bytes = crate::write(&bytes_pool, &complex);
+    let (deserialized, bytes) = ComplexType::read_from_bytes(bytes).unwrap();
+    assert_eq!(deserialized, complex);
     assert_eq!(bytes.len(), 0);
 }

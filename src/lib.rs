@@ -6,6 +6,7 @@ use alloc_pool::{
     },
 };
 
+mod bytes;
 mod integer;
 mod combinators;
 

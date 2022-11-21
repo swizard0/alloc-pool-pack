@@ -142,3 +142,61 @@ impl<T, E> ReadFromBytes for Result<T, E> where T: ReadFromBytes, E: ReadFromByt
         Ok((result, bytes))
     }
 }
+
+// tuple2
+
+impl<A, B> WriteToBytesMut for (A, B) where A: WriteToBytesMut, B: WriteToBytesMut {
+    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
+        self.0.write_to_bytes_mut(bytes_mut);
+        self.1.write_to_bytes_mut(bytes_mut);
+    }
+}
+
+#[derive(Debug)]
+pub enum ReadTuple2Error<A, B> where A: ReadFromBytes, B: ReadFromBytes {
+    A(A::Error),
+    B(B::Error),
+}
+
+impl<A, B> ReadFromBytes for (A, B) where A: ReadFromBytes, B: ReadFromBytes {
+    type Error = ReadTuple2Error<A, B>;
+
+    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
+        let (a, bytes) = A::read_from_bytes(bytes)
+            .map_err(ReadTuple2Error::A)?;
+        let (b, bytes) = B::read_from_bytes(bytes)
+            .map_err(ReadTuple2Error::B)?;
+        Ok(((a, b), bytes))
+    }
+}
+
+// tuple3
+
+impl<A, B, C> WriteToBytesMut for (A, B, C) where A: WriteToBytesMut, B: WriteToBytesMut, C: WriteToBytesMut {
+    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
+        self.0.write_to_bytes_mut(bytes_mut);
+        self.1.write_to_bytes_mut(bytes_mut);
+        self.2.write_to_bytes_mut(bytes_mut);
+    }
+}
+
+#[derive(Debug)]
+pub enum ReadTuple3Error<A, B, C> where A: ReadFromBytes, B: ReadFromBytes, C: ReadFromBytes {
+    A(A::Error),
+    B(B::Error),
+    C(C::Error),
+}
+
+impl<A, B, C> ReadFromBytes for (A, B, C) where A: ReadFromBytes, B: ReadFromBytes, C: ReadFromBytes {
+    type Error = ReadTuple3Error<A, B, C>;
+
+    fn read_from_bytes(bytes: Bytes) -> Result<(Self, Bytes), Self::Error> {
+        let (a, bytes) = A::read_from_bytes(bytes)
+            .map_err(ReadTuple3Error::A)?;
+        let (b, bytes) = B::read_from_bytes(bytes)
+            .map_err(ReadTuple3Error::B)?;
+        let (c, bytes) = C::read_from_bytes(bytes)
+            .map_err(ReadTuple3Error::C)?;
+        Ok(((a, b, c), bytes))
+    }
+}
