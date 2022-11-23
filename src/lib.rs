@@ -23,6 +23,7 @@ pub trait Source {
     fn advance(&mut self, bytes_count: usize);
 }
 
+#[derive(Clone)]
 pub struct SourceSlice<'a> {
     slice: &'a [u8],
 }
@@ -47,6 +48,7 @@ impl<'a> Source for SourceSlice<'a> {
     }
 }
 
+#[derive(Clone)]
 pub struct SourceBytesRef<'a> {
     bytes: &'a Bytes,
     source_slice: SourceSlice<'a>,
@@ -75,7 +77,7 @@ impl<'a> Source for SourceBytesRef<'a> {
     }
 }
 
-
+#[derive(Clone)]
 pub struct SourceBytesOwned {
     parent_bytes: Bytes,
     bytes: Bytes,

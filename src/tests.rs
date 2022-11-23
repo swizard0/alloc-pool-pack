@@ -42,8 +42,13 @@ fn serialize_deserialize_complex() {
     let complex: ComplexType = (Some(13), Ok(data));
     let bytes = crate::write(&bytes_pool, &complex);
     let mut source_bytes = SourceBytesRef::from(&bytes);
+    let mut source_bytes_clone = source_bytes.clone();
     let deserialized =
         ComplexType::read_from_source(&mut source_bytes).unwrap();
     assert_eq!(deserialized, complex);
     assert_eq!(source_bytes.slice().len(), 0);
+    let deserialized =
+        ComplexType::read_from_source(&mut source_bytes_clone).unwrap();
+    assert_eq!(deserialized, complex);
+    assert_eq!(source_bytes_clone.slice().len(), 0);
 }

@@ -1,6 +1,6 @@
 [package]
 name = "alloc-pool-pack"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Alexey Voznyuk <me@swizard.info>"]
 description = "Primitive objects binary serializer for `alloc_pool::bytes`"
 edition = "2021"
