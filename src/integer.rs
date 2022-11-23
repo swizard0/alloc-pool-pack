@@ -39,7 +39,7 @@ macro_rules! traits_impl {
                 let value = slice.get(.. required)
                     .and_then(|octets_slice| octets_slice.try_into().ok())
                     .map(|octets| Self::from_be_bytes(octets))
-                    .ok_or(ReadIntegerError::InvalidBytesCount {
+                    .ok_or(Self::Error::InvalidBytesCount {
                         provided: slice.len(),
                         required,
                     })?;

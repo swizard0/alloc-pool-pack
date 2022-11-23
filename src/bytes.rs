@@ -36,17 +36,17 @@ impl ReadFromSource for Bytes {
 
     fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
         let bytes_count = u32::read_from_source(source)
-            .map_err(ReadBytesError::BytesCount)?;
+            .map_err(Self::Error::BytesCount)?;
         let bytes_count: usize = bytes_count.try_into()
-            .map_err(ReadBytesError::BytesCountConvert)?;
+            .map_err(Self::Error::BytesCountConvert)?;
         if source.slice().len() < bytes_count {
-            return Err(ReadBytesError::NotEnoughBytes {
+            return Err(Self::Error::NotEnoughBytes {
                 required: bytes_count,
                 provided: source.slice().len(),
             });
         }
         let parent_bytes = source.parent_bytes()
-            .ok_or(ReadBytesError::NoBytesAvailable)?;
+            .ok_or(Self::Error::NoBytesAvailable)?;
         let bytes_subrange = parent_bytes.clone_subslice(&source.slice()[.. bytes_count]);
         source.advance(bytes_count);
         Ok(bytes_subrange)
