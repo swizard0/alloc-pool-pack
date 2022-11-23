@@ -2,15 +2,10 @@ use either::{
     Either,
 };
 
-use alloc_pool::{
-    bytes::{
-        BytesMut,
-    },
-};
-
 use crate::{
     integer,
     Source,
+    Target,
     ReadFromSource,
     WriteToBytesMut,
 };
@@ -18,7 +13,7 @@ use crate::{
 // Unit
 
 impl WriteToBytesMut for () {
-    fn write_to_bytes_mut(&self, _bytes_mut: &mut BytesMut) {
+    fn write_to_bytes_mut<T>(&self, _target: &mut T) where T: Target {
     }
 }
 
@@ -40,15 +35,15 @@ const TAG_LEFT: u8 = 1;
 const TAG_RIGHT: u8 = 2;
 
 impl<L, R> WriteToBytesMut for Either<L, R> where L: WriteToBytesMut, R: WriteToBytesMut {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
         match self {
             Either::Left(left) => {
-                TAG_LEFT.write_to_bytes_mut(bytes_mut);
-                left.write_to_bytes_mut(bytes_mut);
+                TAG_LEFT.write_to_bytes_mut(target);
+                left.write_to_bytes_mut(target);
             },
             Either::Right(right) => {
-                TAG_RIGHT.write_to_bytes_mut(bytes_mut);
-                right.write_to_bytes_mut(bytes_mut);
+                TAG_RIGHT.write_to_bytes_mut(target);
+                right.write_to_bytes_mut(target);
             },
         }
     }
@@ -87,20 +82,20 @@ impl<L, R> ReadFromSource for Either<L, R> where L: ReadFromSource, R: ReadFromS
 
 // Option
 
-impl<T> WriteToBytesMut for Option<T> where T: WriteToBytesMut {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
+impl<U> WriteToBytesMut for Option<U> where U: WriteToBytesMut {
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
         let either = match self {
             None =>
                 Either::Left(()),
             Some(value) =>
                 Either::Right(value),
         };
-        either.write_to_bytes_mut(bytes_mut);
+        either.write_to_bytes_mut(target);
     }
 }
 
-impl<T> ReadFromSource for Option<T> where T: ReadFromSource {
-    type Error = ReadEitherError<(), T>;
+impl<U> ReadFromSource for Option<U> where U: ReadFromSource {
+    type Error = ReadEitherError<(), U>;
 
     fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
         let either = Either::read_from_source(source)?;
@@ -116,20 +111,20 @@ impl<T> ReadFromSource for Option<T> where T: ReadFromSource {
 
 // Result
 
-impl<T, E> WriteToBytesMut for Result<T, E> where T: WriteToBytesMut, E: WriteToBytesMut {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
+impl<U, E> WriteToBytesMut for Result<U, E> where U: WriteToBytesMut, E: WriteToBytesMut {
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
         let either = match self {
             Err(error) =>
                 Either::Left(error),
             Ok(value) =>
                 Either::Right(value),
         };
-        either.write_to_bytes_mut(bytes_mut);
+        either.write_to_bytes_mut(target);
     }
 }
 
-impl<T, E> ReadFromSource for Result<T, E> where T: ReadFromSource, E: ReadFromSource {
-    type Error = ReadEitherError<E, T>;
+impl<U, E> ReadFromSource for Result<U, E> where U: ReadFromSource, E: ReadFromSource {
+    type Error = ReadEitherError<E, U>;
 
     fn read_from_source<S>(source: &mut S) -> Result<Self, Self::Error> where S: Source {
         let either = Either::read_from_source(source)?;
@@ -146,9 +141,9 @@ impl<T, E> ReadFromSource for Result<T, E> where T: ReadFromSource, E: ReadFromS
 // tuple2
 
 impl<A, B> WriteToBytesMut for (A, B) where A: WriteToBytesMut, B: WriteToBytesMut {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
-        self.0.write_to_bytes_mut(bytes_mut);
-        self.1.write_to_bytes_mut(bytes_mut);
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
+        self.0.write_to_bytes_mut(target);
+        self.1.write_to_bytes_mut(target);
     }
 }
 
@@ -173,10 +168,10 @@ impl<A, B> ReadFromSource for (A, B) where A: ReadFromSource, B: ReadFromSource 
 // tuple3
 
 impl<A, B, C> WriteToBytesMut for (A, B, C) where A: WriteToBytesMut, B: WriteToBytesMut, C: WriteToBytesMut {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
-        self.0.write_to_bytes_mut(bytes_mut);
-        self.1.write_to_bytes_mut(bytes_mut);
-        self.2.write_to_bytes_mut(bytes_mut);
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
+        self.0.write_to_bytes_mut(target);
+        self.1.write_to_bytes_mut(target);
+        self.2.write_to_bytes_mut(target);
     }
 }
 

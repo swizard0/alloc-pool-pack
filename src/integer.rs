@@ -2,14 +2,9 @@ use std::{
     mem,
 };
 
-use alloc_pool::{
-    bytes::{
-        BytesMut,
-    },
-};
-
 use crate::{
     Source,
+    Target,
     ReadFromSource,
     WriteToBytesMut,
 };
@@ -25,8 +20,8 @@ pub enum ReadIntegerError {
 macro_rules! traits_impl {
     ($T:ty) => {
         impl WriteToBytesMut for $T {
-            fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
-                bytes_mut.extend_from_slice(&self.to_be_bytes());
+            fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
+                target.extend_from_slice(&self.to_be_bytes());
             }
         }
 

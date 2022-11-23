@@ -1,22 +1,22 @@
 use alloc_pool::{
     bytes::{
         Bytes,
-        BytesMut,
     },
 };
 
 use crate::{
     integer,
     Source,
+    Target,
     ReadFromSource,
     WriteToBytesMut,
 };
 
 impl WriteToBytesMut for Bytes {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
         let bytes_len: u32 = self.len().try_into().unwrap();
-        bytes_len.write_to_bytes_mut(bytes_mut);
-        bytes_mut.extend_from_slice(self);
+        bytes_len.write_to_bytes_mut(target);
+        target.extend_from_slice(self);
     }
 }
 

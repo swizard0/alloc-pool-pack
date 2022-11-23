@@ -13,8 +13,36 @@ pub mod combinators;
 #[cfg(test)]
 mod tests;
 
+pub trait Target {
+    fn extend_from_slice(&mut self, slice: &[u8]);
+}
+
+impl Target for BytesMut {
+    fn extend_from_slice(&mut self, slice: &[u8]) {
+        let vec: &mut Vec<_> = &mut *self;
+        vec.extend_from_slice(slice);
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
+pub struct TargetCounter {
+    bytes_written: usize,
+}
+
+impl TargetCounter {
+    pub fn bytes_written(&self) -> usize {
+        self.bytes_written
+    }
+}
+
+impl Target for TargetCounter {
+    fn extend_from_slice(&mut self, slice: &[u8]) {
+        self.bytes_written += slice.len();
+    }
+}
+
 pub trait WriteToBytesMut {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut);
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target;
 }
 
 pub trait Source {
@@ -118,8 +146,8 @@ pub fn write<T>(blocks_pool: &BytesPool, value: &T) -> Bytes where T: WriteToByt
     bytes_mut.freeze()
 }
 
-impl<'a, T> WriteToBytesMut for &'a T where T: WriteToBytesMut {
-    fn write_to_bytes_mut(&self, bytes_mut: &mut BytesMut) {
-        (*self).write_to_bytes_mut(bytes_mut);
+impl<'a, U> WriteToBytesMut for &'a U where U: WriteToBytesMut {
+    fn write_to_bytes_mut<T>(&self, target: &mut T) where T: Target {
+        (*self).write_to_bytes_mut(target);
     }
 }
