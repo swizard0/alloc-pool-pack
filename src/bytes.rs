@@ -45,8 +45,9 @@ impl ReadFromSource for Bytes {
                 provided: source.slice().len(),
             });
         }
-        let bytes = source.bytes().ok_or(ReadBytesError::NoBytesAvailable)?;
-        let bytes_subrange = bytes.subrange(.. bytes_count);
+        let parent_bytes = source.parent_bytes()
+            .ok_or(ReadBytesError::NoBytesAvailable)?;
+        let bytes_subrange = parent_bytes.clone_subslice(&source.slice()[.. bytes_count]);
         source.advance(bytes_count);
         Ok(bytes_subrange)
     }

@@ -19,7 +19,7 @@ pub trait WriteToBytesMut {
 
 pub trait Source {
     fn slice(&self) -> &[u8];
-    fn bytes(&self) -> Option<&Bytes>;
+    fn parent_bytes(&self) -> Option<&Bytes>;
     fn advance(&mut self, bytes_count: usize);
 }
 
@@ -38,7 +38,7 @@ impl<'a> Source for SourceSlice<'a> {
         self.slice
     }
 
-    fn bytes(&self) -> Option<&Bytes> {
+    fn parent_bytes(&self) -> Option<&Bytes> {
         None
     }
 
@@ -47,23 +47,56 @@ impl<'a> Source for SourceSlice<'a> {
     }
 }
 
-pub struct SourceBytes {
-    bytes: Bytes,
+pub struct SourceBytesRef<'a> {
+    bytes: &'a Bytes,
+    source_slice: SourceSlice<'a>,
 }
 
-impl From<Bytes> for SourceBytes {
-    fn from(bytes: Bytes) -> SourceBytes {
-        SourceBytes { bytes, }
+impl<'a> From<&'a Bytes> for SourceBytesRef<'a> {
+    fn from(bytes: &'a Bytes) -> SourceBytesRef<'a> {
+        SourceBytesRef {
+            bytes,
+            source_slice: SourceSlice::from(&**bytes),
+        }
     }
 }
 
-impl Source for SourceBytes {
+impl<'a> Source for SourceBytesRef<'a> {
+    fn slice(&self) -> &[u8] {
+        self.source_slice.slice()
+    }
+
+    fn parent_bytes(&self) -> Option<&Bytes> {
+        Some(self.bytes)
+    }
+
+    fn advance(&mut self, bytes_count: usize) {
+        self.source_slice.advance(bytes_count);
+    }
+}
+
+
+pub struct SourceBytesOwned {
+    parent_bytes: Bytes,
+    bytes: Bytes,
+}
+
+impl From<Bytes> for SourceBytesOwned {
+    fn from(bytes: Bytes) -> SourceBytesOwned {
+        SourceBytesOwned {
+            parent_bytes: bytes.clone(),
+            bytes,
+        }
+    }
+}
+
+impl Source for SourceBytesOwned {
     fn slice(&self) -> &[u8] {
         &self.bytes
     }
 
-    fn bytes(&self) -> Option<&Bytes> {
-        Some(&self.bytes)
+    fn parent_bytes(&self) -> Option<&Bytes> {
+        Some(&self.parent_bytes)
     }
 
     fn advance(&mut self, bytes_count: usize) {
